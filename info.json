@@ -1,0 +1,10 @@
+{
+	"Id": "JunctionMaintanence",
+	"Version": "1.00.0",
+	"DisplayName": "Junction Maintanence",
+	"Author": "CJ187",
+	"Credits": "Coookie, NotAnOption and ChatGPT",
+	"EntryMethod": "JunctionMaintanence.Main.Load",
+	"ManagerVersion": "0.27.2",
+	"HomePage": "https://www.nexusmods.com/derailvalley/mods/1251"
+}
