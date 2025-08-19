@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+
+	<!-- Derail Valley -->
+	<ItemGroup>
+		<Reference Include="Assembly-CSharp">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\Assembly-CSharp.dll</HintPath>
+		</Reference>
+		<Reference Include="DV.ThingTypes">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.ThingTypes.dll</HintPath>
+		</Reference>
+		<Reference Include="DV.Utils">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.Utils.dll</HintPath>
+		</Reference>
+		<Reference Include="WorldStreamer">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\WorldStreamer.dll</HintPath>
+		</Reference>
+		<Reference Include="DV.Common">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.Common.dll</HintPath>
+		</Reference>
+		<Reference Include="DV.WeatherSystem">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.WeatherSystem.dll</HintPath>
+		</Reference>
+		<Reference Include="DV.RailTrack">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.RailTrack.dll</HintPath>
+		</Reference>
+		<Reference Include="DV.BrakeSystem">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.BrakeSystem.dll</HintPath>
+		</Reference>
+		<Reference Include="DV.UserManagement">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.UserManagement.dll</HintPath>
+		</Reference>
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\Newtonsoft.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<!-- Unity -->
+	<ItemGroup>
+		<Reference Include="UnityEngine">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.UI">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.UI.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.CoreModule">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+		</Reference>		
+		<Reference Include="UnityEngine.InputLegacyModule">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+		<Private>False</Private>		
+		</Reference>
+		<Reference Include="UnityEngine.PhysicsModule">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.IMGUIModule">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+		</Reference>
+		<Reference Include="Unity.TextMeshPro">
+			<HintPath>S:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<!-- Mod Loader -->
+	<ItemGroup>
+		<PackageReference Include="UnityModManager" Version="0.32.4" />
+	</ItemGroup>
+
+	<!-- Null Checking -->
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+		<PackageReference Include="Nullable" Version="1.3.1" PrivateAssets="all" />
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<!-- Copy to build folder -->
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="../build/" />
+
+		<!-- Package after Release build -->
+		<Exec Condition="'$(ConfigurationName)' == 'Release' And '$(OS)' == 'Windows_NT'" Command="powershell -executionpolicy bypass -Command &quot;(../package.ps1)&quot;" />
+		<Exec Condition="'$(ConfigurationName)' == 'Release' And '$(OS)' != 'Windows_NT'" Command="pwsh -Command &quot;(../package.ps1)&quot;" />
+	</Target>
+</Project>
