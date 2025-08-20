@@ -721,7 +721,7 @@ namespace JunctionMaintenance
                     var (j, _) = JM_CM_ListState.Items[JM_CM_ListState.Selected];
                     if (j == null) return false;
 
-                    string key = DamageStore.MakeKey(j);
+                    string key = JunctionKeyCache.Get(j);
                     float before = DamageStore.Get(key); // 0..1
                     float step   = Mathf.Clamp01(Main.Settings.repairAmountPercent);
                     float repaired01 = Mathf.Min(step, before);

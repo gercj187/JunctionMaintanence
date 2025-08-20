@@ -9,9 +9,32 @@ using HarmonyLib;
 using UnityEngine;
 using DV;
 using Newtonsoft.Json.Linq;
+using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace JunctionMaintenance
-{
+{	
+	internal static class JunctionKeyCache
+	{
+		private static readonly ConditionalWeakTable<Junction, Cached> _map = new();
+		private sealed class Cached { public string Key; }
+
+		public static string Get(Junction j)
+		{
+			if (j == null) return "Switch";
+			if (_map.TryGetValue(j, out var c) && !string.IsNullOrEmpty(c.Key)) return c.Key;
+
+			// exakte, bestehende Logik nutzen (kompatibel zum bisherigen Save-Key!)
+			string k;
+			try { k = DamageStore.MakeKey(j); }
+			catch { k = j?.gameObject?.name ?? "Switch"; }
+
+			_map.Remove(j); // sicherstellen, dass wir das neu setzen (falls vorher leer)
+			_map.Add(j, new Cached { Key = k });
+			return k;
+		}
+	}
+
     // LOAD hook: when save becomes current, read our map
     [HarmonyPatch(typeof(StartGameData_FromSaveGame), "MakeCurrent")]
     static class JM_Patch_LoadFromSave
@@ -124,7 +147,7 @@ namespace JunctionMaintenance
 
             try
             {
-                string key = DamageStore.MakeKey(j);
+                string key = JunctionKeyCache.Get(j);
                 float dmg = DamageStore.Get(key); // 0..1
                 if (dmg >= 0.999f)
                 {
@@ -175,7 +198,7 @@ namespace JunctionMaintenance
 
                 if (addPercent01 <= 0f) return;
 
-                string key = DamageStore.MakeKey(__instance);
+                string key = JunctionKeyCache.Get(__instance);
                 DamageStore.AddPercent(key, addPercent01);
 
                 // After a forced run-through, block random flips for a while
@@ -218,7 +241,8 @@ namespace JunctionMaintenance
                     }
                 }
 
-                string key = DamageStore.MakeKey(__instance);
+                string key = JunctionKeyCache.Get(__instance);
+				if (FlipThrottle.ShouldSkip(key)) return;
 
                 if (FlipGuard.IsBlocked(key)) return;
 
@@ -306,35 +330,58 @@ namespace JunctionMaintenance
             return _snapshot;
         }
     }
+	
+	// Drosselt Junction-weise die Häufigkeit der Flip-Checks (entlastet Hotspots wie Harbor)
+	internal static class FlipThrottle
+	{
+		private static readonly Dictionary<string, float> _lastTs = new();
+		private const float MIN_INTERVAL = 0.12f; // 120 ms
 
-    public static class SpeedEstimator
-    {
-        /// <summary>
-        /// Ermittelt die beste Annäherung der Fahrzeuggeschwindigkeit in der Nähe der Junction.
-        /// Verwendet TrainCarQuery.GetAll() statt FindObjectsOfType.
-        /// </summary>
-        public static float EstimateImpactSpeedKmh(Junction j)
-        {
-            if (j == null) return 0f;
-            Vector3 jp = j.transform.position;
-            float bestD = 30f;
-            float bestKmh = 0f;
+		public static bool ShouldSkip(string key)
+		{
+			float now = Time.unscaledTime;
+			if (_lastTs.TryGetValue(key, out var ts) && (now - ts) < MIN_INTERVAL)
+				return true;
 
-            var cars = TrainCarQuery.GetAll();
-            for (int i = 0; i < cars.Length; i++)
-            {
-                var tc = cars[i];
-                var rb = tc?.rb;
-                if (rb == null) continue;
+			_lastTs[key] = now;
+			return false;
+		}
+	}
+	
+	public static class SpeedEstimator
+	{
+		/// <summary>
+		/// Ermittelt die beste Annäherung der Fahrzeuggeschwindigkeit in der Nähe der Junction.
+		/// Nutzt TrainCarQuery.GetAll() (Snapshot) und SqrMagnitude für günstige Distanzchecks.
+		/// Wenn RandomFlip deaktiviert ist, sparen wir uns die Berechnung direkt.
+		/// </summary>
+		public static float EstimateImpactSpeedKmh(Junction j)
+		{
+			if (j == null) return 0f;
 
-                float d = Vector3.Distance(jp, tc.transform.position);
-                if (d < bestD)
-                {
-                    bestD = d;
-                    bestKmh = rb.velocity.magnitude * 3.6f;
-                }
-            }
-            return bestKmh;
-        }
-    }
+			// Wenn RandomFlip aus ist, brauchen wir die Geschwindigkeit i.d.R. nicht.
+			if (!Main.Settings.enableRandomFlip)
+				return 0f;
+
+			Vector3 jp = j.transform.position;
+			float bestD2 = 30f * 30f; // 30 m Radius (Distanz^2)
+			float bestKmh = 0f;
+
+			var cars = TrainCarQuery.GetAll();
+			for (int i = 0; i < cars.Length; i++)
+			{
+				var tc = cars[i];
+				var rb = tc?.rb;
+				if (rb == null) continue;
+
+				float d2 = (tc.transform.position - jp).sqrMagnitude;
+				if (d2 < bestD2)
+				{
+					bestD2 = d2;
+					bestKmh = rb.velocity.magnitude * 3.6f;
+				}
+			}
+			return bestKmh;
+		}
+	}
 }
